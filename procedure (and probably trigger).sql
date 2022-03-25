@@ -73,12 +73,13 @@ for each row
         WHERE id_doctor = new.story_doctor AND raport_month = MONTH(new.reg_date) AND raport_year = YEAR(new.reg_date)
         INTO ready;
         
-		IF ready = 0
+		IF ready = 0  # Если это первый случай попадания пациента к этому доктору в этот месяц этого года.
 		then
-			call createRaport(YEAR(new.reg_date), MONTH(new.reg_date));
+			INSERT INTO raport(id_doctor, raport_year, raport_month, doctor_surname, patients_amount)
+            VALUES(new.story_doctor, YEAR(new.reg_date), MONTH(new.reg_date), (SELECT surname FROM doctor), 1);
 		end if;
         
-		IF ready = 1
+		IF ready = 1  # Если уже был случай попадания пациенту к этому доктору в этот месяц этого года.
 		then
 			UPDATE raport
 			SET patient_amount = patient_amount + 1
