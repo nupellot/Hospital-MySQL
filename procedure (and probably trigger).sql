@@ -7,44 +7,47 @@
 # Количество пациентов врача за этот период.
 # В отчет выбираются все врачи, которые были назначены лечащими для пациентов, поступивших в госпиталь в указанный период 
 # Отчет составляется для периода, год и месяц которого передаются в процедуру в качестве входных параметров.
-call createRaport(2022, 03);
-select * from raport;
-select * from story;
-delete from story where id_story = 9;
-insert into story(id_story, diagnosis, reg_date, discharge_date, story_doctor, story_ward, story_patient)
-values(9, "ZPPP", "2022-03-22", null, 4, 2, 10);
-drop trigger trigg;
-SET SQL_SAFE_UPDATES = 0;
-delete from raport;
-select * from raport;
-show tables;
 use scheme_1;
-drop procedure createRaport;
+
+# Тест процедуры
+DROP PROCEDURE createRaport;  # Удаляем уже созданную старую версию процедуры.
+# Идём куда-то вниз и вызываем создание новой версии процедуры.
+CALL createRaport(2021, 04);  # Вызываем процедуру.
+SELECT * FROM raport;  # Смотрим на результат её выполнения.
+
+# Тест триггера
+DROP TRIGGER Trigg;  # Удаляем уже созданную старую версию триггера.
+# Идём куда-то вниз и вызываем создание новой версии триггера.
+delete from raport;
+
+
+# SET SQL_SAFE_UPDATES = 0;
+# Создаём таблицу, в которой будет находиться отчёт
 CREATE TABLE IF NOT EXISTS raport(
 			id_doctor INT,
             raport_year INT,
             raport_month INT,
             doctor_surname VARCHAR(50),
             patients_amount INT);
-delimiter //
-create procedure createRaport(y int, m int)
-	begin         
 
-		declare doctor_id int;
-		declare doctor_surname varchar(25);
-		declare patient_amount int;
-        declare done INT DEFAULT false;
+# Определяем процедуру создания отчёта.
+delimiter //
+CREATE PROCEDURE createRaport(y INT, m INT)
+	BEGIN
+		# Переменные, через которые данные будут переданы из курсора в таблицу отчёта.
+		DECLARE doctor_id INT;
+		DECLARE doctor_surname VARCHAR(25);
+		DECLARE patient_amount INT;
+        DECLARE done INT DEFAULT FALSE;
+        # Определяем формат курсора (таблицы с данными, по которой можно перемещаться только вниз).
         DECLARE raport_cursor CURSOR FOR
 			SELECT doctor.id_doctor, doctor.inits, count(story.id_story)
 			FROM doctor INNER JOIN story ON doctor.id_doctor = story.story_doctor
 			WHERE YEAR(story.reg_date) = y AND MONTH(story.reg_date) = m
 			GROUP BY doctor.id_doctor;
         
-        declare exit handler for sqlstate '02000' begin set done = true; end;
-		
-        delete from raport;
-		
-        
+        DECLARE EXIT HANDLER FOR SQLSTATE '02000' BEGIN SET done = TRUE; END;
+       /* DELETE FROM raport;*/
         OPEN raport_cursor;
         
         WHILE (done <> true) do
@@ -53,7 +56,7 @@ create procedure createRaport(y int, m int)
             VALUES(doctor_id, y, m, doctor_surname, patient_amount);
 			END WHILE;
 		close raport_cursor;
-	
+
 
 	END //
 
@@ -61,7 +64,27 @@ delimiter \\
 create trigger trigg AFTER INSERT ON story
 for each row
 	begin  
-        call createRaport(year(current_date()), month(current_date()));
+		# Если появилась новая история болезни, то нужно проверить, не было ли в этом месяце уже записи об этом враче.
+        # Если запись была, то обновить её.
+        # Если записи не было, то вставить новую.
+        DECLARE ready INT DEFAULT 0;  # Переменная, показывающая, имеется ли в таблице нужная запись.
+        SELECT count(*)
+        FROM raport
+        WHERE id_doctor = new.story_doctor AND raport_month = MONTH(new.reg_date) AND raport_year = YEAR(new.reg_date)
+        INTO ready;
+        
+		IF ready = 0
+		then
+			call createRaport(YEAR(new.reg_date), MONTH(new.reg_date));
+		end if;
+        
+		IF ready = 1
+		then
+			UPDATE raport
+			SET patient_amount = patient_amount + 1
+			WHERE id_doctor = new.story_doctor AND raport_month = MONTH(new.reg_date) AND raport_year = YEAR(new.reg_date);
+		end if;
     end;
 \\
 
+drop trigger trigg;
