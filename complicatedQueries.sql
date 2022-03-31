@@ -33,8 +33,23 @@ WHERE id_story IS NULL;
 
 # 5. Показать фамилии врачей, которые не назначались лечащими врачами пациентов в марте 2020 года.
 # Это как-то не работает.
-SELECT doctor.*
-FROM doctor JOIN story ON story_doctor = id_doctor
+# Создадим View, который посчитает число пациентов, принятых определенным врачём в период марта 2020 года.
+CREATE VIEW report AS (
+	SELECT id_doctor, surname, count(id_story) AS amount
+    FROM doctor INNER JOIN story ON story_doctor = id_doctor
+    WHERE YEAR(reg_date) = 2020 AND MONTH(reg_date) = 3
+    GROUP BY id_doctor
+);
+DROP VIEW report;
+SELECT * FROM report;
+SELECT id_doctor, surname
+FROM doctor LEFT JOIN story ON story_doctor = id_doctor
+
+
+
+
+SELECT id_doctor, surname
+FROM doctor LEFT JOIN story ON story_doctor = id_doctor
 WHERE NOT (YEAR(reg_date) = 2020 AND MONTH(reg_date) = 3)
 GROUP BY id_doctor;
 
