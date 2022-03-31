@@ -12,7 +12,8 @@ use scheme_1;
 # Тест процедуры
 DROP PROCEDURE createRaport;  # Удаляем уже созданную старую версию процедуры.
 # Идём куда-то вниз и вызываем создание новой версии процедуры.
-CALL createRaport(2021, 04);  # Вызываем процедуру.
+CALL createRaport(2020, 03);  # Вызываем процедуру.
+DROP TABLE raport;
 SELECT * FROM raport;  # Смотрим на результат её выполнения.
 
 # Тест триггера
@@ -23,7 +24,7 @@ delete from raport;
 
 # SET SQL_SAFE_UPDATES = 0;
 # Создаём таблицу, в которой будет находиться отчёт
-CREATE TABLE IF NOT EXISTS raport(
+CREATE TABLE IF NOT EXISTS raport (
 			id_doctor INT,
             raport_year INT,
             raport_month INT,
