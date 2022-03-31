@@ -13,13 +13,14 @@ GROUP BY id_department;
 
 
 # 3. Покажите все сведения о действующем враче, проработавшем в госпитале дольше всех.
-SELECT id_doctor, recruitment_date, current_date() - recruitment_date
+SELECT doctor.*, DATEDIFF(current_date(), recruitment_date) AS 'Проработал дней'
 FROM doctor
 WHERE dismissal_date IS NULL
-ORDER BY current_date() - recruitment_date DESC
+ORDER BY DATEDIFF(current_date(), recruitment_date) DESC
 LIMIT 1;
 
-SELECT doctor.*, DATEDIFF(current_date(), recruitment_date) AS 'Проработал дней'  # НЕ РАБОТАЕТ
+# 3.1. Более корректный вариант (Учитывает тот факт, что несколько врачей могли проработать равное количество времени)
+SELECT doctor.*, DATEDIFF(current_date(), recruitment_date) AS 'Проработал дней'
 FROM doctor
 WHERE recruitment_date = (SELECT MIN(recruitment_date) FROM doctor WHERE dismissal_date IS NULL);
 
